@@ -1,8 +1,11 @@
 rootProject.name = 'TFLiteApp'
+apply from: file("../node_modules/@react-native-community/cli-platform-android/native_modules.gradle");
+applyNativeModulesSettingsGradle(settings)
 
-apply from: file("../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesSettingsGradle(settings)
 include ':app'
-includeBuild('../node_modules/react-native-gradle-plugin')
-
 include ':tflite-react-native'
-project(':tflite-react-native').projectDir = file('../node_modules/tflite-react-native/android')
+project(':tflite-react-native').projectDir = new File(rootProject.projectDir, '../node_modules/tflite-react-native/android')
+// includeBuild('../node_modules/react-native-gradle-plugin')
+
+include ':react-native-fast-tflite'
+project(':react-native-fast-tflite').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-fast-tflite/android')

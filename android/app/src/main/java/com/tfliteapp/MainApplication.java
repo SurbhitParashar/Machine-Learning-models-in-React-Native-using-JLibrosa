@@ -9,8 +9,12 @@ import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint;
 import com.facebook.react.defaults.DefaultReactNativeHost;
 import com.facebook.soloader.SoLoader;
 import java.util.List;
+// import com.shaqian.tflite.TfliteReactPackage;
+// import com.shuqian.tflite.TfliteReactPackage;
 // import org.reactnative.tflite.TfliteReactNativePackage;
-
+// import com.tflite.TfliteReactPackage;
+import com.tfliteapp.TFLiteModule;
+import com.tfliteapp.TFLitePackage;
 
 public class MainApplication extends Application implements ReactApplication {
 
@@ -21,15 +25,14 @@ public class MainApplication extends Application implements ReactApplication {
           return BuildConfig.DEBUG;
         }
 
-        @Override
-        protected List<ReactPackage> getPackages() {
-          @SuppressWarnings("UnnecessaryLocalVariable")
-          List<ReactPackage> packages = new PackageList(this).getPackages();
-          // Packages that cannot be autolinked yet can be added manually here, for example:
-          // packages.add(new MyReactNativePackage());
-          // packages.add(new TfliteReactNativePackage());
-          return packages;
-        }
+       @Override
+protected List<ReactPackage> getPackages() {
+  List<ReactPackage> packages = new PackageList(this).getPackages(); // 👈 built-in packages
+  packages.add(new TFLitePackage()); // ✅ your custom package
+  return packages;
+}
+
+
 
         @Override
         protected String getJSMainModuleName() {

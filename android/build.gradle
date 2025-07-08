@@ -2,20 +2,151 @@
 
 buildscript {
     ext {
-        buildToolsVersion = "33.0.0"
+        kotlinVersion = '1.8.10'
+        // buildToolsVersion = "33.0.0"
         minSdkVersion = 21
-        compileSdkVersion = 33
-        targetSdkVersion = 33
+        compileSdkVersion = 34
+        targetSdkVersion = 34
 
         // We use NDK 23 which has both M1 support and is the side-by-side NDK version from AGP.
-        ndkVersion = "23.1.7779620"
+        ndkVersion = "26.1.10909125"
     }
     repositories {
         google()
+         flatDir {
+        dirs "libs"      // look in android/libs for jars
+       }
         mavenCentral()
     }
     dependencies {
-        classpath("com.android.tools.build:gradle:7.3.1")
-        classpath("com.facebook.react:react-native-gradle-plugin")
+        // classpath("com.android.tools.build:gradle:7.3.1")
+        classpath("com.android.tools.build:gradle:8.1.1")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+
+        // classpath("com.facebook.react:react-native-gradle-plugin")
+        classpath("com.facebook.react:react-native-gradle-plugin:0.71.8")
+    }
+}
+import java.nio.file.Paths
+
+buildscript {
+    ext.safeExtGet = {prop ->
+        rootProject.ext.has(prop) ? rootProject.ext.get(prop) : project.properties['ReactNativeWebView_' + prop]
+    }
+    repositories {
+        google()
+        gradlePluginPortal()
+    }
+    dependencies {
+        // classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${safeExtGet('kotlinVersion')}")
+        
+    }
+}
+
+def getExtOrIntegerDefault(prop) {
+  return rootProject.ext.has(prop) ? rootProject.ext.get(prop) : (project.properties['ReactNativeWebView_' + prop]).toInteger()
+}
+
+static def findNodeModulePath(baseDir, packageName) {
+    def basePath = baseDir.toPath().normalize()
+    // Node's module resolution algorithm searches up to the root directory,
+    // after which the base path will be null
+    while (basePath) {
+        def candidatePath = Paths.get(basePath.toString(), "node_modules", packageName)
+        if (candidatePath.toFile().exists()) {
+            return candidatePath.toString()
+        }
+        basePath = basePath.getParent()
+    }
+    return null
+}
+
+def isNewArchitectureEnabled() {
+    return project.hasProperty("newArchEnabled") && project.newArchEnabled == "true"
+}
+
+def supportsNamespace() {
+  def parsed = com.android.Version.ANDROID_GRADLE_PLUGIN_VERSION.tokenize('.')
+  def major = parsed[0].toInteger()
+  def minor = parsed[1].toInteger()
+
+  // Namespace support was added in 7.3.0
+  if (major == 7 && minor >= 3) {
+    return true
+  }
+
+  return major >= 8
+}
+
+apply plugin: 'com.android.library'
+if (isNewArchitectureEnabled()) {
+    apply plugin: 'com.facebook.react'
+}
+apply plugin: 'kotlin-android'
+
+android {
+    if (supportsNamespace()) {
+        namespace "com.reactnativecommunity.webview"
+        buildFeatures {
+            buildConfig true
+        }
+
+        sourceSets {
+            main {
+                manifest.srcFile "src/main/AndroidManifestNew.xml"
+            }
+        }
+    }
+
+    compileSdkVersion getExtOrIntegerDefault('compileSdkVersion')
+
+    defaultConfig {
+        minSdkVersion getExtOrIntegerDefault('minSdkVersion')
+        targetSdkVersion getExtOrIntegerDefault('targetSdkVersion')
+        buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
+    }
+
+    sourceSets {
+        main {
+            if (isNewArchitectureEnabled()) {
+                java.srcDirs += ['src/newarch']
+            } else {
+                java.srcDirs += ['src/oldarch']
+            }
+        }
+    }
+}
+
+def reactNativePath = findNodeModulePath(projectDir, "react-native")
+def codegenPath = findNodeModulePath(projectDir, "@react-native/codegen")
+if (codegenPath == null) {
+  // Compat for 0.71 and lower (to be removed)
+  codegenPath = findNodeModulePath(projectDir, "react-native-codegen")
+}
+
+repositories {
+    maven {
+        url "${reactNativePath}/android"
+    }
+    mavenCentral()
+    google()
+}
+
+dependencies {
+    implementation 'com.facebook.react:react-native:+'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:${safeExtGet('kotlinVersion')}"
+    implementation "androidx.webkit:webkit:${safeExtGet('webkitVersion')}"
+}
+
+allprojects {
+    tasks.withType(JavaCompile).configureEach {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = "11"
+        }
     }
 }
