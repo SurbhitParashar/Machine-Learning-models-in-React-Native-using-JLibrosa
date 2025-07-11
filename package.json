@@ -19,6 +19,7 @@
     "react-native": "0.71.8",
     "react-native-audio-record": "^0.2.2",
     "react-native-canvas": "^0.1.40",
+    "react-native-document-picker": "^9.3.1",
     "react-native-fs": "^2.20.0",
     "react-native-webview": "^13.6.2"
   },

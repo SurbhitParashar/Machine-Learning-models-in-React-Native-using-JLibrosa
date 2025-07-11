@@ -58,17 +58,57 @@ public class TFLiteModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
 public void runModelOnInput(ReadableArray inputArray, Promise promise) {
-  try {
-      float[] input = new float[inputArray.size()];
-      for (int i = 0; i < inputArray.size(); i++) {
-          input[i] = (float) inputArray.getDouble(i);
-      }
+    try {
+        final int NUM_ROWS = 64;
+        final int NUM_COLS = 173;
+        final int NUM_CLASSES = 10;
 
-      classify(input, promise); // ✅ reuse logic
-  } catch (Exception e) {
-      promise.reject("INFERENCE_ERROR", e.getMessage(), e);
-  }
+        if (inputArray.size() != NUM_ROWS * NUM_COLS) {
+            promise.reject("INVALID_INPUT", "Expected input of size 11072 (64×173)");
+            return;
+        }
+
+        // 1) Convert to float[]
+        float[] input = new float[inputArray.size()];
+        for (int i = 0; i < inputArray.size(); i++) {
+            input[i] = (float) inputArray.getDouble(i);
+        }
+
+        // 2) Wrap into ByteBuffer
+        ByteBuffer inputBuffer = ByteBuffer
+                .allocateDirect(input.length * Float.BYTES)
+                .order(ByteOrder.nativeOrder());
+        for (float v : input) {
+            inputBuffer.putFloat(v);
+        }
+        inputBuffer.rewind();
+
+        // 3) Prepare output buffer
+        ByteBuffer outputBuffer = ByteBuffer
+                .allocateDirect(NUM_CLASSES * Float.BYTES)
+                .order(ByteOrder.nativeOrder());
+
+        // 4) Run inference
+        tflite.run(inputBuffer, outputBuffer);
+
+        // 5) Extract output
+        outputBuffer.rewind();
+        float[] scores = new float[NUM_CLASSES];
+        outputBuffer.asFloatBuffer().get(scores);
+
+        // 6) Return result
+        WritableArray result = Arguments.createArray();
+        for (float score : scores) {
+            result.pushDouble(score);
+        }
+        promise.resolve(result);
+
+    } catch (Exception e) {
+        promise.reject("INFERENCE_ERROR", e.getMessage(), e);
+    }
 }
 
 }
+
+
 
