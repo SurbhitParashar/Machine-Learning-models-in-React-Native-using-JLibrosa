@@ -39,7 +39,7 @@ async function classifyAudio(path) {
 }
 
 
-7.	 Usage
+6.	 Usage
 Steps to use the app:
 •	Record: Tap Start Recording → then Stop & Analyze
 •	Select: Tap Select Audio File → pick a .wav file
